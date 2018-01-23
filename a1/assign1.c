@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 	// struct elt *name = name_list();
 
 	/// Convert
-	convert(BIN, 256);
+	convert(HEX, 12517798463253275082UL);
 }
 
 
@@ -280,60 +280,45 @@ static unsigned long exponentiate(unsigned long a, unsigned long b)
 void convert (enum format_t mode, unsigned long value)
 {
   unsigned long val = value;
-  int i;
+  unsigned long digitValue;
+  unsigned long baseValue;
+  unsigned char digitChar;
+  int i = -1;
   switch (mode)
   {
 	case BIN:
-	  for (i = 63; i >= 0; i--)
-	  {
-	  	unsigned long digit = exponentiate(2,i);
-	  	printf("%lu\n", digit);
-	  	if (val - digit >= 0)
-	  	{
-	  		putc('1',stdout);
-	  		val -= digit;
-	  	}
-	  	else
-	  		putc('0',stdout);
-	  }
-	  putc('\n',stdout);
+	  i = 63;
+	  baseValue = 2;
 	break;
 
 	case HEX:
-	  for (i = 15; i >= 0; i--)
-	  {
-	  	unsigned long digit = exponentiate(16,i);
-	  	unsigned char digitVal = '0';
-	  	while (val - digit >= 0)
-	  	{
-	  	  digitVal += 1;
-	  	  if (digitVal == ':')
-	  	  	digitVal = 'a';
-	  	  val -= digit;
-	  	}
-	  	putc(digitVal, stdout);
-	  }
-	  putc('\n',stdout);
+	  i = 15;
+	  baseValue = 16;
 	break;
 
 	case OCT:
-	  for (i = 21; i >= 0; i--)
-	  {
-	  	unsigned long digit = exponentiate(8,i);
-	  	unsigned char digitVal = '0';
-	  	while (val - digit >= 0)
-	  	{
-	  	  digitVal += 1;
-	  	  val -= digit;
-	  	}
-	  	putc(digitVal, stdout);
-	  }
-	  putc('\n',stdout);
+	  i = 21;
+	  baseValue = 8;
 	break;
 
 	default:
+	  return;
 	break;
   }
+  for (i; i >= 0; i--)
+  {
+  	digitValue = exponentiate(baseValue, i);
+  	digitChar = '0';
+  	while (val - digitValue <= val)
+  	{
+  		digitChar += 1;
+  		if (digitChar == ':')
+	  	  digitChar = 'a';
+  		val -= digitValue;
+  	}
+  	putc(digitChar, stdout);
+  }
+  putc('\n',stdout);
   return;
 }
 
