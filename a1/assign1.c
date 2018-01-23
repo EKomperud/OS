@@ -55,6 +55,12 @@ struct elt {
 };
 struct elt *name_list (void);
 
+enum format_t {
+  OCT = 66, BIN, HEX
+};
+static unsigned long exponentiate(unsigned long a, unsigned long b);
+void convert (enum format_t mode, unsigned long value);
+
 int main(int argc, char **argv)
 {
 	/// Byte Sort
@@ -68,7 +74,10 @@ int main(int argc, char **argv)
 	// printf("test is %lx, result is %lx.\n",test,result);
 
 	/// Name List
-	struct elt *name = name_list();
+	// struct elt *name = name_list();
+
+	/// Convert
+	convert(BIN, 256);
 }
 
 
@@ -255,12 +264,77 @@ struct elt *name_list (void)
  *
  *********************************************************************/
 
-enum format_t {
-  OCT = 66, BIN, HEX
-};
+// enum format_t {
+//   OCT = 66, BIN, HEX
+// };
+
+static unsigned long exponentiate(unsigned long a, unsigned long b)
+{
+  int i;
+  unsigned long ret = 1;
+  for (i = 0; i < b; i++)
+  	ret *= a;
+  return ret;
+}
 
 void convert (enum format_t mode, unsigned long value)
 {
+  unsigned long val = value;
+  int i;
+  switch (mode)
+  {
+	case BIN:
+	  for (i = 63; i >= 0; i--)
+	  {
+	  	unsigned long digit = exponentiate(2,i);
+	  	printf("%lu\n", digit);
+	  	if (val - digit >= 0)
+	  	{
+	  		putc('1',stdout);
+	  		val -= digit;
+	  	}
+	  	else
+	  		putc('0',stdout);
+	  }
+	  putc('\n',stdout);
+	break;
+
+	case HEX:
+	  for (i = 15; i >= 0; i--)
+	  {
+	  	unsigned long digit = exponentiate(16,i);
+	  	unsigned char digitVal = '0';
+	  	while (val - digit >= 0)
+	  	{
+	  	  digitVal += 1;
+	  	  if (digitVal == ':')
+	  	  	digitVal = 'a';
+	  	  val -= digit;
+	  	}
+	  	putc(digitVal, stdout);
+	  }
+	  putc('\n',stdout);
+	break;
+
+	case OCT:
+	  for (i = 21; i >= 0; i--)
+	  {
+	  	unsigned long digit = exponentiate(8,i);
+	  	unsigned char digitVal = '0';
+	  	while (val - digit >= 0)
+	  	{
+	  	  digitVal += 1;
+	  	  val -= digit;
+	  	}
+	  	putc(digitVal, stdout);
+	  }
+	  putc('\n',stdout);
+	break;
+
+	default:
+	break;
+  }
+  return;
 }
 
 /*********************************************************************
