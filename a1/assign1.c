@@ -43,53 +43,6 @@
 
 /*********************************************************************
  *
- * main()
- *
- * specification: for testing purposes
- *********************************************************************/
-
-unsigned long byte_sort (unsigned long arg);
-unsigned long nibble_sort (unsigned long arg);
-
-struct elt {
-  char val;
-  struct elt *link;
-};
-struct elt *name_list (void);
-
-enum format_t {
-  OCT = 66, BIN, HEX
-};
-static unsigned long exponentiate(unsigned long a, unsigned long b);
-void convert (enum format_t mode, unsigned long value);
-void draw_me (void);
-
-
-int main(int argc, char **argv)
-{
-	/// Byte Sort
-	// unsigned long test = 0x0403deadbeef0201;
-	// unsigned long result = byte_sort(test);
-	// printf("test is %#lu, result is %#lu.\n",test,result);
-
-	/// Nibble Sort
-	 unsigned long test = 0x0403deadbeef0201;
-	 unsigned long result = nibble_sort(test);
-	 printf("test is %lx, result is %lx.\n",test,result);
-
-	/// Name List
-	// struct elt *name = name_list();
-
-	/// Convert
-	// convert(HEX, 12517798463253275082UL);
-
-	/// Draw Me
-	//draw_me();
-}
-
-
-/*********************************************************************
- *
  * byte_sort()
  *
  * specification: byte_sort() treats its argument as a sequence of
@@ -105,7 +58,7 @@ unsigned long byte_sort (unsigned long arg)
 {
   unsigned long arg2 = arg;
   unsigned long *ret = &arg2;
-  unsigned char *bytes = (char*)ret;
+  unsigned char *bytes = (unsigned char*)ret;
   int i;
   for (i = 1; i < 8; i++)
   {
@@ -206,7 +159,7 @@ struct elt {
 
 struct elt *name_list (void)
 {
-  char *name = "Redwood";
+  const char *name = "Redwood";
   struct elt *letters;
   struct elt *ret;
   letters = ret = (struct elt *)malloc(sizeof(struct elt));
@@ -272,7 +225,7 @@ enum format_t {
 
 static unsigned long exponentiate(unsigned long a, unsigned long b)
 {
-  int i;
+  unsigned int i;
   unsigned long ret = 1;
   for (i = 0; i < b; i++)
   	ret *= a;
@@ -307,7 +260,7 @@ void convert (enum format_t mode, unsigned long value)
 	  return;
 	break;
   }
-  for (i; i >= 0; i--)
+  for (; i >= 0; i--)
   {
   	digitValue = exponentiate(baseValue, i);
   	digitChar = '0';
@@ -353,7 +306,7 @@ void convert (enum format_t mode, unsigned long value)
 
 void draw_me (void)
 {
-	unsigned int fd = syscall(SYS_open, "me.txt", O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+	int fd = syscall(SYS_open, "me.txt", O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
 	if (fd < 0)
 	{
 		syscall(SYS_rmdir, "me.txt");
