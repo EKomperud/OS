@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <sys/syscall.h> 
 #include <unistd.h>
-#include <fcntl.h>
 
 /*********************************************************************
  *
@@ -61,7 +60,6 @@ enum format_t {
 };
 static unsigned long exponentiate(unsigned long a, unsigned long b);
 void convert (enum format_t mode, unsigned long value);
-void draw_me (void);
 
 int main(int argc, char **argv)
 {
@@ -79,10 +77,7 @@ int main(int argc, char **argv)
 	// struct elt *name = name_list();
 
 	/// Convert
-	// convert(HEX, 12517798463253275082UL);
-
-	/// Draw Me
-	draw_me();
+	convert(HEX, 12517798463253275082UL);
 }
 
 
@@ -356,28 +351,5 @@ void convert (enum format_t mode, unsigned long value)
 
 void draw_me (void)
 {
-	unsigned int fd = syscall(SYS_open, "me.txt", O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
-	if (fd < 0)
-	{
-		syscall(SYS_rmdir, "me.txt");
-		return;
-	}
-	syscall(SYS_write, fd, "0123456789012345678901234567890123456789\n",41);
-	syscall(SYS_write, fd, "0                _____                 9\n",41);
-	syscall(SYS_write, fd, "0               |     |                9\n",41);
-	syscall(SYS_write, fd, "0              _|_____|_               9\n",41);
-	syscall(SYS_write, fd, "0             / _    _  \\              9\n",41);
-	syscall(SYS_write, fd, "0            |< O >< O > |             9\n",41);
-	syscall(SYS_write, fd, "0            |    ~~~    |             9\n",41);
-	syscall(SYS_write, fd, "0            \\ \\__/    / ||            9\n",41);
-	syscall(SYS_write, fd, "0              ---------   O           9\n",41);
-	syscall(SYS_write, fd, "0                  |      /            9\n",41);
-	syscall(SYS_write, fd, "0         -C-------|_____/             9\n",41);
-	syscall(SYS_write, fd, "0                  |                   9\n",41);
-	syscall(SYS_write, fd, "0                  |                   9\n",41);
-	syscall(SYS_write, fd, "0                 /-\\                  9\n",41);
-	syscall(SYS_write, fd, "0                /   \\                 9\n",41);	
-	syscall(SYS_write, fd, "0123456789012345678901234567890123456789\n",41);
-	syscall(SYS_close, fd);
-	return;
+  syscall("me.txt", O_CREAT);
 }
