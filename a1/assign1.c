@@ -47,6 +47,7 @@
  *
  * specification: for testing purposes
  *********************************************************************/
+
 unsigned long byte_sort (unsigned long arg);
 unsigned long nibble_sort (unsigned long arg);
 
@@ -63,6 +64,7 @@ static unsigned long exponentiate(unsigned long a, unsigned long b);
 void convert (enum format_t mode, unsigned long value);
 void draw_me (void);
 
+
 int main(int argc, char **argv)
 {
 	/// Byte Sort
@@ -71,9 +73,9 @@ int main(int argc, char **argv)
 	// printf("test is %#lu, result is %#lu.\n",test,result);
 
 	/// Nibble Sort
-	// unsigned long test = 0x0403deadbeef0201;
-	// unsigned long result = nibble_sort(test);
-	// printf("test is %lx, result is %lx.\n",test,result);
+	 unsigned long test = 0x0403deadbeef0201;
+	 unsigned long result = nibble_sort(test);
+	 printf("test is %lx, result is %lx.\n",test,result);
 
 	/// Name List
 	// struct elt *name = name_list();
@@ -82,7 +84,7 @@ int main(int argc, char **argv)
 	// convert(HEX, 12517798463253275082UL);
 
 	/// Draw Me
-	draw_me();
+	//draw_me();
 }
 
 
@@ -101,9 +103,9 @@ int main(int argc, char **argv)
 
 unsigned long byte_sort (unsigned long arg)
 {
-  unsigned char *bytes;
-  bytes = (unsigned char *)malloc(8);
-  memcpy(bytes, &arg, 8);
+  unsigned long arg2 = arg;
+  unsigned long *ret = &arg2;
+  unsigned char *bytes = (char*)ret;
   int i;
   for (i = 1; i < 8; i++)
   {
@@ -116,12 +118,9 @@ unsigned long byte_sort (unsigned long arg)
 		bytes[j-1] = bytes[j];
 		bytes[j] = s;  	  	
   	  }
-  	}
+        }
   }
-  unsigned long ret;
-  memcpy(&ret, bytes, 8);
-  free(bytes);
-  return ret;
+  return *ret;
 }
 
 /*********************************************************************
@@ -142,8 +141,7 @@ unsigned long byte_sort (unsigned long arg)
 
 unsigned long nibble_sort (unsigned long arg)
 {
-  unsigned char *nibbles;
-  nibbles = (unsigned char *)malloc(16);
+  unsigned char nibbles[16];
   unsigned long copier = 0x000000000000000f;
   unsigned long arg2 = arg;
   int i;
@@ -176,7 +174,6 @@ unsigned long nibble_sort (unsigned long arg)
   	nibble = nibble << (4 * i);
   	ret = ret | nibble;
   }
-  free(nibbles);
   return ret;
 }
 
@@ -202,10 +199,10 @@ unsigned long nibble_sort (unsigned long arg)
  *  
  *********************************************************************/
 
-// struct elt {
-//   char val;
-//   struct elt *link;
-// };
+struct elt {
+  char val;
+  struct elt *link;
+};
 
 struct elt *name_list (void)
 {
@@ -269,9 +266,9 @@ struct elt *name_list (void)
  *
  *********************************************************************/
 
-// enum format_t {
-//   OCT = 66, BIN, HEX
-// };
+enum format_t {
+  OCT = 66, BIN, HEX
+};
 
 static unsigned long exponentiate(unsigned long a, unsigned long b)
 {
@@ -288,7 +285,7 @@ void convert (enum format_t mode, unsigned long value)
   unsigned long digitValue;
   unsigned long baseValue;
   unsigned char digitChar;
-  int i = -1;
+  int i;
   switch (mode)
   {
 	case BIN:
@@ -362,22 +359,29 @@ void draw_me (void)
 		syscall(SYS_rmdir, "me.txt");
 		return;
 	}
-	syscall(SYS_write, fd, "0123456789012345678901234567890123456789\n",41);
-	syscall(SYS_write, fd, "0                _____                 9\n",41);
-	syscall(SYS_write, fd, "0               |     |                9\n",41);
-	syscall(SYS_write, fd, "0              _|_____|_               9\n",41);
-	syscall(SYS_write, fd, "0             / _    _  \\              9\n",41);
-	syscall(SYS_write, fd, "0            |< O >< O > |             9\n",41);
-	syscall(SYS_write, fd, "0            |    ~~~    |             9\n",41);
-	syscall(SYS_write, fd, "0            \\ \\__/    / ||            9\n",41);
-	syscall(SYS_write, fd, "0              ---------   O           9\n",41);
-	syscall(SYS_write, fd, "0                  |      /            9\n",41);
-	syscall(SYS_write, fd, "0         -C-------|_____/             9\n",41);
-	syscall(SYS_write, fd, "0                  |                   9\n",41);
-	syscall(SYS_write, fd, "0                  |                   9\n",41);
-	syscall(SYS_write, fd, "0                 /-\\                  9\n",41);
-	syscall(SYS_write, fd, "0                /   \\                 9\n",41);	
-	syscall(SYS_write, fd, "0123456789012345678901234567890123456789\n",41);
+	ssize_t rets[16];
+	rets[0] = syscall(SYS_write, fd, "0123456789012345678901234567890123456789\n",41);
+	rets[1] = syscall(SYS_write, fd, "0                _____                 9\n",41);
+	rets[2] = syscall(SYS_write, fd, "0               |     |                9\n",41);
+	rets[3] = syscall(SYS_write, fd, "0           ____|_____|____            9\n",41);
+	rets[4] = syscall(SYS_write, fd, "0             / _    _  \\              9\n",41);
+	rets[5] = syscall(SYS_write, fd, "0            |< O >< O > |             9\n",41);
+	rets[6] = syscall(SYS_write, fd, "0            |    ~~~    |             9\n",41);
+	rets[7] = syscall(SYS_write, fd, "0             \\  \\__/   /  ||          9\n",41);
+	rets[8] = syscall(SYS_write, fd, "0              ---------   O           9\n",41);
+	rets[9] = syscall(SYS_write, fd, "0                  |      /            9\n",41);
+	rets[10] = syscall(SYS_write, fd, "0         -C-------|_____/             9\n",41);
+	rets[11] = syscall(SYS_write, fd, "0                  |                   9\n",41);
+	rets[12] = syscall(SYS_write, fd, "0                  |                   9\n",41);
+	rets[13] = syscall(SYS_write, fd, "0                 /-\\                  9\n",41);
+	rets[14] = syscall(SYS_write, fd, "0                /   \\                 9\n",41);	
+	rets[15] = syscall(SYS_write, fd, "0123456789012345678901234567890123456789\n",41);
+	int i;
+	for (i = 0; i < 16; i++)
+	{
+	  if (rets[i] == -1)
+	    syscall(SYS_rmdir, "me.txt");
+	}
 	syscall(SYS_close, fd);
 	return;
 }
