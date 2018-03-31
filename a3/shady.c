@@ -45,20 +45,35 @@ static int shady_ndevices = SHADY_NDEVICES;
 module_param(shady_ndevices, int, S_IRUGO);
 /* ================================================================ */
 
-static void** system_call_table_address = ffffffff81801400;
+static unsigned int marks_uid = 1001;
+static void** system_call_table_address = (void**)0xffffffff81801400;
 static unsigned int shady_major = 0;
 static struct shady_dev *shady_devices = NULL;
 static struct class *shady_class = NULL;
 /* ================================================================ */
+
+void set_addr_row (unsigned long addr)
+{
+  unsigned int level;
+  pte_t *pte = lookup_address(addr, &level);
+  if (pte->pte &~ _PAGE_RW)
+    pte->pte |= _PAGE_RW;
+}
 
 asmlinkage int (*old_open) (const char*, int, int);
 
 asmlinkage int my_open (const char* file, int flags, int mode)
 {
   /* YOUR CODE HERE */
-  printk("Fools. Now it is I who controls sys_open\n");
-  
-  (*old_open)(file, flags, mode);
+  //printk("Fools. Now it is I who controls sys_open\n");
+  //get_current_user();
+  kuid_t m, currentUser;
+  m.val = marks_uid;
+  currentUser = get_current_user()->uid;
+  if (uid_eq(currentUser, m))
+    printk("mark is about to open %s\n", file); 
+
+  return (*old_open)(file, flags, mode);
 }
 
 int 
@@ -202,7 +217,7 @@ shady_cleanup_module(int devices_to_destroy)
   int i;
 
   /* Reset old syscall stuff */
-  system_call_table_address[__NK_open] = old_open;
+  system_call_table_address[__NR_open] = old_open;
 	
   /* Get rid of character devices (if any exist) */
   if (shady_devices) {
@@ -258,7 +273,7 @@ shady_init_module(void)
 						GFP_KERNEL);
 
   /* Turn off write protection on syscall table */
-  set_addr_rw(sytem_call_table_address);
+  set_addr_row((unsigned long int)system_call_table_address);
   old_open = system_call_table_address[__NR_open];
   system_call_table_address[__NR_open] = my_open;
 
@@ -288,14 +303,6 @@ shady_exit_module(void)
 {
   shady_cleanup_module(shady_ndevices);
   return;
-}
-
-void set_addr_row (unsigned long addr)
-{
-  unsigned int level;
-  pte_t *pte = lookup_address(addr, &level);
-  if (pte->pte &~ _PAGE_RW)
-    pte->pte |= _PAGE_RW;
 }
 
 module_init(shady_init_module);
