@@ -98,8 +98,8 @@ void lock(a_thread tID)
   int j;
   for (j = 0; j < numThreads; j++)
   {
-    while (entering[j]) {;}
-    while ((number[j] != 0) && (number[tID.tID] > number[j] || (number[tID.tID] == number[j] && tID.tID > j))) {;}
+    while (entering[j]) {sched_yield();}
+    while ((number[j] != 0) && (number[tID.tID] > number[j] || (number[tID.tID] == number[j] && tID.tID > j))) {sched_yield();}
   }
 }
 
