@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <assert.h>
 #include <time.h>
+#include <unistd.h>
 
 typedef struct a_thread
 {
@@ -18,7 +19,8 @@ static volatile int* entering;
 
 static long numThreads;
 static long totalTime;
-static volatile clock_t timer;
+//static volatile clock_t timer;
+static volatile int running;
 static volatile int in_cs;
 
 int main (int argc, const char *argv[])
@@ -37,7 +39,8 @@ int main (int argc, const char *argv[])
   pthread_t t[numThreads];
   a_thread td[numThreads];
   in_cs = 0;
-  timer = 0;
+  //timer = 0;
+  running = 1;
 
   int i;
   for (i = 0; i < numThreads; i++)
@@ -49,6 +52,12 @@ int main (int argc, const char *argv[])
       return 0;
     }
   }
+
+  if(sleep(totalTime))
+  {
+    return 1;
+  }
+  running = 0;
 
   for (i = 0; i < numThreads; i++)
   {
@@ -62,7 +71,7 @@ int main (int argc, const char *argv[])
 void *thread(void *tID)
 {
   a_thread *data = (a_thread *)tID;
-  while (timer < totalTime)
+  while (running)
   {
     lock(*data);
     data->enterCount++;
@@ -76,7 +85,7 @@ void *thread(void *tID)
     assert (in_cs == 3);
     in_cs=0;
 
-    timer = clock() / CLOCKS_PER_SEC;
+    //timer = clock() / CLOCKS_PER_SEC;
     unlock(*data);
   }
   pthread_exit(NULL);
