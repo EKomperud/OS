@@ -10,12 +10,15 @@ typedef struct a_thread
   int tID, enterCount;
 } a_thread;
 
-void lock(a_thread tID);
-void unlock(a_thread tID);
+//void lock(a_thread *tID);
+//void unlock(a_thread *tID);
+void lock (int tID);
+void unlock(int tID);
 void *thread(void *tID);
+void mfence(void);
 
-static volatile int* number;
-static volatile int* entering;
+volatile int* number;
+volatile int* entering;
 
 static long numThreads;
 static long totalTime;
@@ -73,7 +76,7 @@ void *thread(void *tID)
   a_thread *data = (a_thread *)tID;
   while (running)
   {
-    lock(*data);
+    lock(data->tID);
     data->enterCount++;
     
     assert (in_cs == 0);
@@ -86,33 +89,45 @@ void *thread(void *tID)
     in_cs=0;
 
     //timer = clock() / CLOCKS_PER_SEC;
-    unlock(*data);
+    unlock(data->tID);
   }
   pthread_exit(NULL);
   return NULL;
 }
 
-void lock(a_thread tID)
+//void lock(a_thread *tID)
+void lock (int tID)
 {
-  entering[tID.tID] = 1;
+  entering[tID] = 1;
+  mfence();
   int max = 0;
   int i;
   for (i = 0; i < numThreads; i++)
   {
     max = max < number[i] ? number[i] : max;
   }
-  number[tID.tID] = 1 + max;
-  entering[tID.tID] = 0;
+  number[tID] = 1 + max;
+  entering[tID] = 0;
+  mfence();
 
   int j;
   for (j = 0; j < numThreads; j++)
   {
     while (entering[j]) {;}
-    while ((number[j] != 0) && (number[tID.tID] > number[j] || (number[tID.tID] == number[j] && tID.tID > j))) {;}
+    mfence();
+    while ((number[j] != 0) && (number[tID] > number[j] || (number[tID] == number[j] && tID > j))) {;}
+    mfence();
   }
 }
 
-void unlock(a_thread tID)
+//void unlock(a_thread *tID)
+void unlock(int tID)
 {
-  number[tID.tID] = 0;
+  mfence();
+  number[tID] = 0;
+}
+
+void mfence (void) 
+{
+  asm volatile ("mfence" : : : "memory");
 }
