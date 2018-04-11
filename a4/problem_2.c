@@ -19,7 +19,6 @@ static volatile int* entering;
 
 static long numThreads;
 static long totalTime;
-//static volatile clock_t timer;
 static volatile int running;
 static volatile int in_cs;
 
@@ -30,7 +29,6 @@ int main (int argc, const char *argv[])
 
   numThreads = strtol(argv[1],NULL,0);
   totalTime = strtol(argv[2],NULL,0);
-  //totalTime *= numThreads;
   if (numThreads < 1 || numThreads > 99 || totalTime < 1)
     return 1;
   
@@ -39,7 +37,6 @@ int main (int argc, const char *argv[])
   pthread_t t[numThreads];
   a_thread td[numThreads];
   in_cs = 0;
-  //timer = 0;
   running = 1;
 
   int i;
@@ -85,7 +82,6 @@ void *thread(void *tID)
     assert (in_cs == 3);
     in_cs=0;
 
-    //timer = clock() / CLOCKS_PER_SEC;
     unlock(*data);
   }
   pthread_exit(NULL);

@@ -12,10 +12,10 @@ typedef struct a_thread
 
 typedef struct spin_lock_t
 {
-  volatile int lock;
+  volatile int counter, turn;
 } spin_lock_t;
 
-static inline int atomic_cmpxchg (volatile int *ptr, int old, int new);
+static inline int atomic_xadd (volatile int *ptr);
 void spin_lock(struct spin_lock_t *s);
 void spin_unlock(struct spin_lock_t *s);
 void *thread(void *tID);
@@ -91,22 +91,25 @@ void *thread(void *tID)
   return NULL;
 }
 
-static inline int atomic_cmpxchg (volatile int *ptr, int old, int new)
+static inline int atomic_xadd (volatile int *ptr)
 {
-  int ret;
-  asm volatile ("lock cmpxchgl %2,%1"
-		: "=a" (ret), "+m" (*ptr)
-		: "r" (new), "0" (old)
+  register int val __asm__("eax") = 1;
+  asm volatile ("lock xaddl %0,%1"
+		: "+a" (val)
+		: "m" (*ptr)
 		: "memory");
-  return ret;
+  return val;
 }
 
 void spin_lock (struct spin_lock_t *s)
 {
-  while (atomic_cmpxchg(&(s->lock), 0, 1));
+  int me;
+  me = atomic_xadd(&(s->counter));
+  while (me != s->turn)
+    sched_yield();
 }
 
 void spin_unlock (struct spin_lock_t *s)
 {
-  s->lock = 0;
+  ++s->turn;
 }

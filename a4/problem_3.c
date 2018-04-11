@@ -88,7 +88,6 @@ void *thread(void *tID)
     assert (in_cs == 3);
     in_cs=0;
 
-    //timer = clock() / CLOCKS_PER_SEC;
     unlock(data->tID);
   }
   pthread_exit(NULL);
@@ -99,7 +98,6 @@ void *thread(void *tID)
 void lock (int tID)
 {
   entering[tID] = 1;
-  mfence();
   int max = 0;
   int i;
   for (i = 0; i < numThreads; i++)
@@ -108,22 +106,23 @@ void lock (int tID)
   }
   number[tID] = 1 + max;
   entering[tID] = 0;
-  mfence();
+  mfence();       // this fence blocks progression after a potential load/store operation
 
   int j;
   for (j = 0; j < numThreads; j++)
   {
+    // the fences in this section are used to make sure the threads are synced after the while loops finish
     while (entering[j]) {;}
-    mfence();
+    mfence();     // this fence blocks reorering after the first "lock"
     while ((number[j] != 0) && (number[tID] > number[j] || (number[tID] == number[j] && tID > j))) {;}
-    mfence();
+    mfence();     // this fence blocks reordering after the second, more comlicated "lock"
   }
 }
 
 //void unlock(a_thread *tID)
 void unlock(int tID)
 {
-  mfence();
+  // no fences are needed here as there is no intermixing of threads or load/store operations
   number[tID] = 0;
 }
 
