@@ -12,7 +12,7 @@ typedef struct a_thread
 
 typedef struct spin_lock_t
 {
-  volatile unsigned int lock;
+  volatile int lock;
 } spin_lock_t;
 
 static inline int atomic_cmpxchg (volatile int *ptr, int old, int new);
@@ -20,13 +20,11 @@ void spin_lock(struct spin_lock_t *s);
 void spin_unlock(struct spin_lock_t *s);
 void *thread(void *tID);
 
-static volatile int* number;
-static volatile int* entering;
-
 static long numThreads;
 static long totalTime;
 static volatile int running;
 static volatile int in_cs;
+static spin_lock_t lock = { 0 };
 
 int main (int argc, const char *argv[])
 {
@@ -38,11 +36,8 @@ int main (int argc, const char *argv[])
   if (numThreads < 1 || numThreads > 99 || totalTime < 1)
     return 1;
   
-  number = calloc(numThreads, sizeof(int));
-  entering = calloc(numThreads, sizeof(int));
   pthread_t t[numThreads];
   a_thread td[numThreads];
-  spin_lock_t lock = { 0 };
   in_cs = 0;
   running = 1;
   
@@ -78,7 +73,7 @@ void *thread(void *tID)
   a_thread *data = (a_thread *)tID;
   while (running)
   {
-    lock(*data);
+    spin_lock(&lock);
     data->enterCount++;
     
     assert (in_cs == 0);
@@ -90,14 +85,13 @@ void *thread(void *tID)
     assert (in_cs == 3);
     in_cs=0;
 
-    //timer = clock() / CLOCKS_PER_SEC;
-    unlock(*data);
+    spin_unlock(&lock);
   }
   pthread_exit(NULL);
   return NULL;
 }
 
-static inline int atomic_cmpxchg (volatile int *ptr, int new, int old)
+static inline int atomic_cmpxchg (volatile int *ptr, int old, int new)
 {
   int ret;
   asm volatile ("lock cmpxchgl %2,%1"
@@ -109,10 +103,10 @@ static inline int atomic_cmpxchg (volatile int *ptr, int new, int old)
 
 void spin_lock (struct spin_lock_t *s)
 {
-  while (atomic_compxchg(s->lock, 0, 1));
+  while (atomic_cmpxchg(&(s->lock), 0, 1));
 }
 
-void spin_unlock (struct spink_lock *s)
+void spin_unlock (struct spin_lock_t *s)
 {
   s->lock = 0;
 }
