@@ -47,11 +47,12 @@ int main (int argc, const char *argv[])
   running = 0;
 
   for (i = 0; i < numThreads; i++)
-    pthread_join(t[i], NULL);
+    if (pthread_join(t[i], NULL))
+      return 1;
 
   double four = 4.0;
   double pi = (four * hits) / tries;
-  printf("You may have %.10f pieces of my pi\n",pi);
+  fprintf(stdout,"You may have %.10f pieces of my pi\n",pi);
 
   return 0;
 }

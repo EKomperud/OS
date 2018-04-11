@@ -33,16 +33,16 @@ int main (int argc, const char *argv[])
 
   numThreads = strtol(argv[1],NULL,0);
   totalTime = strtol(argv[2],NULL,0);
-  //totalTime *= numThreads;
   if (numThreads < 1 || numThreads > 99 || totalTime < 1)
     return 1;
   
   number = calloc(numThreads, sizeof(int));
   entering = calloc(numThreads, sizeof(int));
+  if (!number || !entering)
+    return 1;
   pthread_t t[numThreads];
   a_thread td[numThreads];
   in_cs = 0;
-  //timer = 0;
   running = 1;
 
   int i;
@@ -64,8 +64,9 @@ int main (int argc, const char *argv[])
 
   for (i = 0; i < numThreads; i++)
   {
-    pthread_join(t[i], NULL);
-    printf("Thread %d joined. Entered critical section %d times\n", i, td[i].enterCount);
+    if (pthread_join(t[i], NULL))
+      return 1;
+    fprintf(stdout,"Thread %d joined. Entered critical section %d times\n", i, td[i].enterCount);
   }
 
   return 0;

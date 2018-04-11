@@ -34,6 +34,8 @@ int main (int argc, const char *argv[])
   
   number = calloc(numThreads, sizeof(int));
   entering = calloc(numThreads, sizeof(int));
+  if (!number || !entering)
+    return 1;
   pthread_t t[numThreads];
   a_thread td[numThreads];
   in_cs = 0;
@@ -58,8 +60,9 @@ int main (int argc, const char *argv[])
 
   for (i = 0; i < numThreads; i++)
   {
-    pthread_join(t[i], NULL);
-    printf("Thread %d joined. Entered critical section %d times\n", i, td[i].enterCount);
+    if (pthread_join(t[i], NULL))
+      return 1;
+    fprintf( stdout, "Thread %d joined. Entered critical section %d times\n", i, td[i].enterCount);
   }
 
   return 0;
