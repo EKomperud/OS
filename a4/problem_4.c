@@ -10,8 +10,14 @@ typedef struct a_thread
   int tID, enterCount;
 } a_thread;
 
-void lock(a_thread tID);
-void unlock(a_thread tID);
+typedef struct spin_lock_t
+{
+  volatile unsigned int lock;
+} spin_lock_t;
+
+static inline int atomic_cmpxchg (volatile int *ptr, int old, int new);
+void spin_lock(struct spin_lock_t *s);
+void spin_unlock(struct spin_lock_t *s);
 void *thread(void *tID);
 
 static volatile int* number;
@@ -19,7 +25,6 @@ static volatile int* entering;
 
 static long numThreads;
 static long totalTime;
-//static volatile clock_t timer;
 static volatile int running;
 static volatile int in_cs;
 
@@ -30,7 +35,6 @@ int main (int argc, const char *argv[])
 
   numThreads = strtol(argv[1],NULL,0);
   totalTime = strtol(argv[2],NULL,0);
-  //totalTime *= numThreads;
   if (numThreads < 1 || numThreads > 99 || totalTime < 1)
     return 1;
   
@@ -38,9 +42,10 @@ int main (int argc, const char *argv[])
   entering = calloc(numThreads, sizeof(int));
   pthread_t t[numThreads];
   a_thread td[numThreads];
+  spin_lock_t lock = { 0 };
   in_cs = 0;
-  //timer = 0;
   running = 1;
+  
 
   int i;
   for (i = 0; i < numThreads; i++)
@@ -92,27 +97,22 @@ void *thread(void *tID)
   return NULL;
 }
 
-void lock(a_thread tID)
+static inline int atomic_cmpxchg (volatile int *ptr, int new, int old)
 {
-  entering[tID.tID] = 1;
-  int max = 0;
-  int i;
-  for (i = 0; i < numThreads; i++)
-  {
-    max = max < number[i] ? number[i] : max;
-  }
-  number[tID.tID] = 1 + max;
-  entering[tID.tID] = 0;
-
-  int j;
-  for (j = 0; j < numThreads; j++)
-  {
-    while (entering[j]) {;}
-    while ((number[j] != 0) && (number[tID.tID] > number[j] || (number[tID.tID] == number[j] && tID.tID > j))) {;}
-  }
+  int ret;
+  asm volatile ("lock cmpxchgl %2,%1"
+		: "=a" (ret), "+m" (*ptr)
+		: "r" (new), "0" (old)
+		: "memory");
+  return ret;
 }
 
-void unlock(a_thread tID)
+void spin_lock (struct spin_lock_t *s)
 {
-  number[tID.tID] = 0;
+  while (atomic_compxchg(s->lock, 0, 1));
+}
+
+void spin_unlock (struct spink_lock *s)
+{
+  s->lock = 0;
 }
