@@ -9,10 +9,24 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <pthread.h>
 
-/// Problem 2
+/// Problem 3
+
+/// Product struct
+typedef struct product
+{
+  const char *buffer;
+  long fileSize;
+  int k;
+} product;
 
 /// Method headers
+// Threads
+void *consumer(void *arg);
+volatile product *doGet(void);
+void doFill(product *p);
+// Helpers
 unsigned int getCharArrayLength(char arr[]);
 unsigned int getCharStarLength(char *star);
 char *getFilePrefix(const char *file);
@@ -21,6 +35,16 @@ int charArrayToCharStar(char arr[], char *star);
 uint32_t crc32(uint32_t crc, const void *buf, size_t size);
 
 /// Globals
+static pthread_mutex_t lock;
+static pthread_cond_t producerCond;
+static pthread_cond_t consumerCond;
+static long numWorkers;
+static volatile product *factory;
+static volatile int consumerLine;
+static volatile int producerLine;
+static volatile int products;
+static volatile unsigned int *checksums;
+static int running;
 static uint32_t crc32_tab[] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
 	0xe963a535, 0x9e6495a3,	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
@@ -70,11 +94,41 @@ static uint32_t crc32_tab[] = {
 int main(int argc, const char **argv)
 {
     /// Argc check
-    if (argc != 2)
+    if (argc != 3)
     {
-        fprintf(stderr, "Alas hero! Mine program here has need of exactly 1 argument, no more, no less! Return with your chosen argument and verily we will make way!\n");
+        fprintf(stderr, "Alas hero! Mine program here has need of exactly 2 arguments, no more, no less! Return with your chosen arguments and verily we will make way!\n");
 	return 1;
     }
+
+    /// Thread + Condition variable setup
+    numWorkers = strtol(argv[2],NULL,0);
+    if (numWorkers <= 0 || numWorkers > 99)
+    {
+        fprintf(stderr, "Hold fast hero, I cannot allow thee to venture forth without somewhere between 1 and 99 threads. Thy quest would be far too dangerous otherwise.\n");
+        return 1;
+    }
+    pthread_t *workerThreads = calloc(numWorkers, sizeof(pthread_t));
+    factory = calloc(numWorkers, sizeof(product));
+    if (!workerThreads || !factory)
+    {
+        fprintf(stderr, "Grave news sire, a memory allocation has failed... I'm afeared we must postpone thy holy quest until we can properly allocate that memory.\n");
+        return 1;
+    }
+    if (pthread_cond_init(&producerCond, NULL) || pthread_cond_init(&consumerCond, NULL) || pthread_mutex_init(&lock, NULL))
+    {
+      fprintf(stderr, "My lord, the condition variables and mutex did not init. Shall we try once more?\n");
+      return 1;
+    }
+    int i;
+    for (i = 0; i < numWorkers; i++)
+    {
+        if (pthread_create(&workerThreads[i], NULL, consumer, NULL))
+        {
+	  fprintf(stderr, "Sir, we require thine aid! The serf threads have risen up and refuse to work! Thy holy sword of Feudalism should be enough to set them straight!\n");
+        }
+	
+    }
+    
 
     /// Try opening argument directory, exiting if you can't
     const char *directoryName = argv[1];
@@ -87,7 +141,7 @@ int main(int argc, const char **argv)
     char *prefix = getFilePrefix(argv[1]);
     if (!prefix)
     {
-        fprintf(stderr, "Despair mortal hero! Your pitiful memory allocation has failed and now you are mine to finish!\n");
+        fprintf(stderr, "Despair mortal hero! Your pitiful memory allocation has failed and now you are mine to destroy!\n");
         return 1;
     }
 
@@ -105,11 +159,12 @@ int main(int argc, const char **argv)
 
     /// Loop through directory entries, skipping directories
     char **filenames = calloc(dirCount, sizeof(char*));
-    unsigned int *checksums = calloc(dirCount, sizeof(unsigned int));
+    checksums = calloc(dirCount, sizeof(unsigned int));
     int *valids = calloc(dirCount, sizeof(int));
-    int i = 0;
+    i = 0;
     while ((directoryEntry = readdir(directory)) != NULL)
     {
+      running = 1;
         if (directoryEntry->d_type == DT_REG)
         {
             unsigned int len = getCharArrayLength(directoryEntry->d_name);
@@ -128,8 +183,15 @@ int main(int argc, const char **argv)
                 rewind(file);
 
                 buffer = mmap(NULL, fileSize, PROT_READ, MAP_SHARED, fd, 0);
-                unsigned int checkSum = crc32(0, buffer, fileSize);
-                checksums[i] = checkSum;
+		product p = {buffer, fileSize, i};
+		pthread_mutex_lock(&lock);
+		while (products == numWorkers)
+		  pthread_cond_wait(&producerCond,&lock);
+		doFill(&p);
+		if (i == dirCount - 1)
+		  running = 0;
+		pthread_cond_broadcast(&consumerCond);
+		pthread_mutex_unlock(&lock);
             }
             else
             {
@@ -139,6 +201,11 @@ int main(int argc, const char **argv)
             ++i;
         }
     }
+
+    pthread_mutex_lock(&lock);
+    while (running == 0)
+      pthread_cond_wait(&producerCond, &lock);
+    pthread_mutex_unlock(&lock);
 
     char *sorted = calloc(dirCount, sizeof(char));
     int min = -1;
@@ -165,6 +232,47 @@ int main(int argc, const char **argv)
 	sorted[min] = 1;
     }
     return 0;
+}
+
+void *consumer(void *arg)
+{
+  while(1)
+  {
+    pthread_mutex_lock(&lock);
+    while (products == 0)
+      pthread_cond_wait(&consumerCond, &lock);
+    volatile product *p = doGet();
+    pthread_cond_broadcast(&producerCond);
+    pthread_mutex_unlock(&lock);
+    unsigned int checkSum = crc32(0, p->buffer, p->fileSize);
+    pthread_mutex_lock(&lock);
+    checksums[p->k] = checkSum;
+    pthread_mutex_unlock(&lock);
+    if (!running && products == 0)
+    {
+      running = 1;
+      pthread_cond_broadcast(&producerCond);
+      break;
+    }
+  }
+  return NULL;
+}
+
+volatile product *doGet(void)
+{
+  volatile product *ret = &factory[consumerLine];
+  if (++consumerLine == numWorkers)
+    consumerLine = 0;
+  products--;
+  return ret;
+}
+
+void doFill(product *p)
+{
+  factory[producerLine] = *p;
+  if (++producerLine == numWorkers)
+    producerLine = 0;
+  products++;
 }
 
 unsigned int getCharArrayLength(char arr[])

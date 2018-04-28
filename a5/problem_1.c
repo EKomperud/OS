@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <unistd.h>
 
+/// Problem 1
+
 /// Method headers
 void *cat_starter(void *data);
 void *cat_thread(void *data);
