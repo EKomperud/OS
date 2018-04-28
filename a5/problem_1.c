@@ -312,7 +312,8 @@ void bird_exit(void)
 
 void play(void)
 {
-    for (int i=0; i<10; i++)
+    int i;
+    for (i=0; i<10; i++)
     {
         /// 0 = cats, 1 = dogs, 2 = birds
         assert(playPen[0] >= 0 && playPen[0] <= numAnimals[0]);
